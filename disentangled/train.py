@@ -7,20 +7,18 @@ from tqdm.notebook import trange
 
 import tensorflow as tf
 import tensorflow_probability as tfp
-
+from '.summary' import *
 tfd = tfp.distributions
 
 
-def train_step(model, optimizer, dataset, flags, writer):
+def train_step(*, model, optimizer, train_ds, test_ds, FLAGS, writer):
     step = tf.Variable(0, dtype=tf.int64, name="step")
 
-    for inputs in dataset.prefetch(buffer_size=None):
+    for inputs in train_ds.prefetch(buffer_size=None):
         with tf.compat.v2.summary.record_if(
             lambda: tf.math.equal(0, step % FLAGS.log_steps)
         ):
-            tf.compat.v2.summary.histogram(
-                "image", data=inputs, step=tf.compat.v1.train.get_or_create_step()
-            )
+            tf.compat.v2.summary.histogram("image", data=inputs, step=step)
 
         with tf.GradientTape() as tape:
             features = model.compressor(inputs)  # (batch, timesteps, hidden)
@@ -76,19 +74,19 @@ def train_step(model, optimizer, dataset, flags, writer):
                     )
                     summarize_mean_in_nats_and_bits(
                         dynamic_prior_log_prob,
-                        FLAGS.latent_size_dynamic * sprites_data.length,
+                        FLAGS.latent_size_dynamic * sprites.length,
                         "dynamic_prior",
                     )
                     summarize_mean_in_nats_and_bits(
                         dynamic_posterior_log_prob,
-                        FLAGS.latent_size_dynamic * sprites_data.length,
+                        FLAGS.latent_size_dynamic * sprites.length,
                         "dynamic_posterior",
                     )
                     summarize_mean_in_nats_and_bits(
                         likelihood_log_prob,
-                        sprites_data.frame_size ** 2
-                        * sprites_data.channels
-                        * sprites_data.length,
+                        sprites.frame_size ** 2
+                        * sprites.channels
+                        * sprites.length,
                         "likelihood",
                     )
 
@@ -114,9 +112,7 @@ def train_step(model, optimizer, dataset, flags, writer):
             for grad, var in grads_and_vars:
                 with tf.compat.v1.name_scope("grads"):
                     tf.compat.v2.summary.histogram(
-                        "{}/grad".format(var.name),
-                        data=grad,
-                        step=tf.compat.v1.train.get_or_create_step(),
+                        "{}/grad".format(var.name), data=grad, step=step
                     )
                 with tf.compat.v1.name_scope("vars"):
                     tf.compat.v2.summary.histogram(var.name, data=var, step=step)
@@ -128,8 +124,8 @@ def train_step(model, optimizer, dataset, flags, writer):
         checkpoint_manager.save()
         print("ELBO ({}/{}): {}".format(step.numpy(), FLAGS.max_steps, elbo.numpy()))
         with tf.compat.v2.summary.record_if(True):
-            val_data = sprites_data.test.take(20)
-            inputs = next(iter(val_data.shuffle(20).batch(3)))[0]
+            val_data = test_ds.take(20)
+            inputs = next(iter(val_data.shuffle(20).batch(3)))
             visualize_qualitative_analysis(
                 inputs, model, FLAGS.num_reconstruction_samples
             )
