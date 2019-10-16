@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import sys
-from tqdm.notebook import trange
 
 import tensorflow as tf
 import tensorflow_probability as tfp
