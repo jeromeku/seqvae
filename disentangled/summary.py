@@ -63,18 +63,21 @@ def visualize_qualitative_analysis(
         reconstruct = functools.partial(
             model.reconstruct, inputs=inputs, samples=samples
         )
-        visualize_reconstruction(inputs, average(reconstruct()))
+        visualize_reconstruction(inputs, average(reconstruct()), step)
         visualize_reconstruction(
-            inputs, average(reconstruct(sample_static=True)), name="static_prior"
+            inputs, average(reconstruct(sample_static=True)), step, name="static_prior"
         )
         visualize_reconstruction(
-            inputs, average(reconstruct(sample_dynamic=True)), name="dynamic_prior"
+            inputs,
+            average(reconstruct(sample_dynamic=True)),
+            step,
+            name="dynamic_prior",
         )
         visualize_reconstruction(
-            inputs, average(reconstruct(swap_static=True)), name="swap_static"
+            inputs, average(reconstruct(swap_static=True)), step, name="swap_static"
         )
         visualize_reconstruction(
-            inputs, average(reconstruct(swap_dynamic=True)), name="swap_dynamic"
+            inputs, average(reconstruct(swap_dynamic=True)), step, name="swap_dynamic"
         )
 
     with tf.compat.v1.name_scope("generation"):
