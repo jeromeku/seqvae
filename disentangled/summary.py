@@ -1,4 +1,5 @@
 from datetime import datetime
+import functools
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -10,7 +11,7 @@ import tensorflow_probability as tfp
 tfd = tfp.distributions
 
 
-def image_summary(seqs, name, step, num=None):
+def image_summary(*, seqs, name, step, num=None):
     """Visualizes sequences as TensorBoard summaries.
 
   Args:
@@ -26,7 +27,7 @@ def image_summary(seqs, name, step, num=None):
     tf.compat.v2.summary.image(name, joined_seqs, max_outputs=1, step=step)
 
 
-def visualize_reconstruction(inputs, reconstruct, num=3, name="reconstruction"):
+def visualize_reconstruction(inputs, reconstruct, step, num=3, name="reconstruction"):
     """Visualizes the reconstruction of inputs in TensorBoard.
 
   Args:
@@ -39,10 +40,12 @@ def visualize_reconstruction(inputs, reconstruct, num=3, name="reconstruction"):
   """
     reconstruct = tf.clip_by_value(reconstruct, 0.0, 1.0)
     inputs_and_reconstruct = tf.concat((inputs[:num], reconstruct[:num]), axis=0)
-    image_summary(inputs_and_reconstruct, name)
+    image_summary(seqs=inputs_and_reconstruct, name=name, step=step)
 
 
-def visualize_qualitative_analysis(inputs, model, samples=1, batch_size=3, length=8):
+def visualize_qualitative_analysis(
+    inputs, model, step, samples=1, batch_size=3, length=8
+):
     """Visualizes a qualitative analysis of a given model.
 
   Args:
@@ -78,8 +81,12 @@ def visualize_qualitative_analysis(inputs, model, samples=1, batch_size=3, lengt
         generate = functools.partial(
             model.generate, batch_size=batch_size, length=length, samples=samples
         )
-        image_summary(average(generate(fix_static=True)), "fix_static")
-        image_summary(average(generate(fix_dynamic=True)), "fix_dynamic")
+        image_summary(
+            seqs=average(generate(fix_static=True)), name="fix_static", step=step
+        )
+        image_summary(
+            seqs=average(generate(fix_dynamic=True)), name="fix_dynamic", step=step
+        )
 
 
 def summarize_dist_params(dist, name, step, name_scope="dist_params"):
